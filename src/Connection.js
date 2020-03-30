@@ -73,6 +73,7 @@ class Pop3Connection extends EventEmitter {
           }
           this._socket.end();
           this._socket = null;
+          this._endStream(err);
         });
       }
       if (this.tls) {
@@ -145,9 +146,6 @@ class Pop3Connection extends EventEmitter {
 
   async command(...args) {
     this._command = args.join(' ');
-    if (!this._socket) {
-      throw new Error('no-socket');
-    }
     await new Promise((resolve, reject) => {
       if (!this._stream) {
         return resolve();
@@ -166,6 +164,10 @@ class Pop3Connection extends EventEmitter {
         this.removeListener('error', rejectFn);
         resolve([info, stream]);
       });
+      if (!this._socket) {
+        reject(new Error('no-socket'));
+        return;
+      }
       this._socket.write(`${this._command}${CRLF}`, 'utf8');
     });
   }
