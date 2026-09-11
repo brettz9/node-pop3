@@ -609,6 +609,44 @@ describe('Connection connect branch coverage', function () {
     }
   });
 
+  it('rejects connect() instead of crashing on a `-ERR` greeting', async function () {
+    const server = createServer((socket) => {
+      socket.write('-ERR too many connections\r\n');
+      socket.end();
+    });
+
+    await new Promise((resolve) => {
+      server.listen(0, '127.0.0.1', () => {
+        resolve(undefined);
+      });
+    });
+
+    const address = server.address();
+    if (!address || typeof address === 'string') {
+      await new Promise((resolve) => server.close(resolve));
+      throw new TypeError('Could not get test server address');
+    }
+
+    const connection = new Pop3Connection({
+      host: '127.0.0.1',
+      port: address.port
+    });
+
+    try {
+      await connection.connect();
+      expect.fail('Expected connect() to reject');
+    } catch (err) {
+      expect(/** @type {Error} */ (err).message).to.equal(
+        'too many connections'
+      );
+      expect(/** @type {{eventName?: string}} */ (err).eventName).to.equal(
+        'error'
+      );
+    } finally {
+      await new Promise((resolve) => server.close(resolve));
+    }
+  });
+
   it('pushes LIST body data that arrives with +OK in the same chunk', async function () {
     /** @type {import('net').Socket|undefined} */
     let serverSocket;

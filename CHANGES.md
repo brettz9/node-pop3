@@ -1,5 +1,12 @@
 # CHANGES to node-pop3
 
+## 0.15.1
+
+- fix: `connect()` now listens for its own `error` event so a `-ERR`
+    greeting (or a socket error before any command is sent) rejects
+    the `connect()` promise instead of crashing the process as an
+    unhandled `error` event
+
 ## 0.15.0
 
 - feat: add `CAPA` and `supports` commands

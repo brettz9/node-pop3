@@ -128,6 +128,7 @@ class Pop3Connection extends EventEmitter {
           return;
         }
         settled = true;
+        this.removeListener('error', safeReject);
         resolve();
       };
 
@@ -144,8 +145,18 @@ class Pop3Connection extends EventEmitter {
           return;
         }
         settled = true;
+        this.removeListener('error', safeReject);
         reject(e);
       };
+
+      // `command()` listens for our own `error` event while a command is
+      //   in flight, but until a command is sent (e.g., while awaiting the
+      //   server's initial greeting), nothing does. Without this listener,
+      //   an `error` emitted below (e.g., a `-ERR` greeting) or re-emitted
+      //   from a socket `error` while a stream is active (see the
+      //   socket `error` handler) would have no listener, and Node throws
+      //   such unhandled `error` events, crashing the process.
+      this.once('error', safeReject);
 
       if (typeof this.timeout !== 'undefined') {
         socket.setTimeout(this.timeout, () => {
