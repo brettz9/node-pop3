@@ -750,6 +750,68 @@ describe('Connection connect branch coverage', function () {
     }
   });
 
+  it(
+    'surfaces a stray connection-level error to an actively-streaming ' +
+      'RETR instead of crashing with no listeners',
+    async function () {
+      const server = createServer((socket) => {
+        socket.write('+OK ready\r\n');
+        socket.on('data', (buffer) => {
+          const command = buffer.toString('utf8').trim();
+          if (command.startsWith('RETR')) {
+            socket.write('+OK message follows\r\n');
+          }
+        });
+      });
+
+      await new Promise((resolve) => {
+        server.listen(0, '127.0.0.1', () => {
+          resolve(undefined);
+        });
+      });
+
+      const address = server.address();
+      if (!address || typeof address === 'string') {
+        await new Promise((resolve) => server.close(resolve));
+        throw new TypeError('Could not get test server address');
+      }
+
+      const connection = new Pop3Connection({
+        host: '127.0.0.1',
+        port: address.port
+      });
+
+      try {
+        await connection.connect();
+        const [, stream] = await connection.command('RETR', 1);
+        // The `command()` call above already resolved, so its own
+        //   `error`/`response` listeners are already cleared, even
+        //   though the body is still expected to stream in.
+        const bodyProm = stream2String(
+          /** @type {import('stream').Readable} */ (stream)
+        );
+
+        /** @type {import('net').Socket} */ (
+          connection._socket
+        ).emit('error', new Error('mid-stream boom'));
+
+        try {
+          await bodyProm;
+          expect.fail('Expected the RETR body to reject');
+        } catch (err) {
+          expect(/** @type {Error} */ (err).message).to.equal(
+            'mid-stream boom'
+          );
+        }
+      } finally {
+        if (connection._socket) {
+          /** @type {import('net').Socket} */ (connection._socket).destroy();
+        }
+        await new Promise((resolve) => server.close(resolve));
+      }
+    }
+  );
+
   it('nulls socket when low-level socket error occurs outside stream mode', async function () {
     /** @type {import('net').Socket|undefined} */
     let serverSocket;

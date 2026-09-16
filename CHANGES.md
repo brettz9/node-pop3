@@ -1,5 +1,16 @@
 # CHANGES to node-pop3
 
+## 0.15.3
+
+- fix: keep a permanent `error` listener on the connection for its
+    whole life, not just while a command's own response is
+    outstanding; a multi-line command's `error`/`response` listeners
+    are cleared as soon as its initial response line arrives, even
+    though the body may still be streaming, so an `error` re-emitted
+    afterward (e.g., from a socket-level error while streaming) had
+    no listener left and crashed the whole process instead of
+    rejecting the in-progress `RETR`/`TOP`/`CAPA` call
+
 ## 0.15.2
 
 - fix: only treat a lone `.` or `.\r\n` chunk as the multi-line body

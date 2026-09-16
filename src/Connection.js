@@ -178,11 +178,37 @@ class Pop3Connection extends EventEmitter {
       // `command()` listens for our own `error` event while a command is
       //   in flight, but until a command is sent (e.g., while awaiting the
       //   server's initial greeting), nothing does. Without this listener,
-      //   an `error` emitted below (e.g., a `-ERR` greeting) or re-emitted
-      //   from a socket `error` while a stream is active (see the
-      //   socket `error` handler) would have no listener, and Node throws
-      //   such unhandled `error` events, crashing the process.
+      //   an `error` emitted below (e.g., a `-ERR` greeting) would have no
+      //   listener, and Node throws such unhandled `error` events,
+      //   crashing the process.
       this.once('error', safeReject);
+
+      // `safeReject` above is removed as soon as `connect()` settles, and
+      //   each `command()` call's own `error` listener is likewise removed
+      //   as soon as *that* command's initial response line arrives — even
+      //   though, for a multi-line command (RETR/TOP/CAPA), the body may
+      //   still be streaming in. An `error` re-emitted afterward (e.g.,
+      //   from the socket `error` handler below while a stream is active)
+      //   would then have no listener left at all and crash the process
+      //   instead of reaching whoever is actually consuming the stream.
+      //   This permanent listener closes that gap for the rest of the
+      //   connection's life by routing such an error to the active stream.
+      this.on('error', (err) => {
+        // Only forward to the stream if something is actually listening
+        //   for its `error` event (as `stream2String` does): destroying an
+        //   otherwise-unwatched stream would just trade one unhandled
+        //   `error` event (on the connection) for another (on the
+        //   stream). Callers that obtain the raw stream and rely solely
+        //   on the connection's own `error` event are unaffected.
+        if (
+          this._stream &&
+          typeof this._stream.destroy === 'function' &&
+          typeof this._stream.listenerCount === 'function' &&
+          this._stream.listenerCount('error') > 0
+        ) {
+          this._stream.destroy(err);
+        }
+      });
 
       if (typeof this.timeout !== 'undefined') {
         socket.setTimeout(this.timeout, () => {

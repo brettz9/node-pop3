@@ -1,6 +1,6 @@
 {
   "name": "node-pop3",
-  "version": "0.15.2",
+  "version": "0.15.3",
   "description": "POP3 client for node",
   "main": "./lib/Command.cjs",
   "type": "module",
