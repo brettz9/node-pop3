@@ -47,6 +47,7 @@ class Pop3Connection extends EventEmitter {
     this.timeout = timeout;
     this._socket = null;
     this._stream = null;
+    this._streamAtLineStart = true;
     this._command = '';
     this._pendingResponseBuffer = Buffer.concat([]);
     this.tlsOptions = tlsOptions || {};
@@ -74,6 +75,10 @@ class Pop3Connection extends EventEmitter {
         //
       }
     });
+    // A fresh stream always begins at a line boundary (right after the
+    //   response's info line), so the short terminator forms ('.\r\n'
+    //   and '.') are valid here; see `_pushStream`.
+    this._streamAtLineStart = true;
     return this._stream;
   }
 
@@ -82,7 +87,25 @@ class Pop3Connection extends EventEmitter {
    * @returns {void}
    */
   _pushStream (buffer) {
-    if (TERMINATOR_BUFFER_ARRAY.some((_buffer) => _buffer.equals(buffer))) {
+    // The full '\r\n.\r\n' form carries its own preceding line break, so
+    //   it unambiguously marks a terminator wherever it lands. The short
+    //   forms ('.\r\n' and '.') omit that line break because some servers
+    //   split it into an earlier chunk whose trailing CRLF was already
+    //   pushed to the stream; they are only trustworthy when this chunk
+    //   is known to start a new line. Without that guard, a chunk that
+    //   coincidentally *is* just "." or ".\r\n" in the middle of real
+    //   body content (e.g., a lone "." from an arbitrary TCP/TLS
+    //   fragmentation boundary) would end the stream early, and the next,
+    //   still-legitimate body chunk would then be misread as a fresh
+    //   top-level response (see node-pop3 issue about corrupted -ERR
+    //   messages during RETR).
+    if (
+      TERMINATOR_BUFFER.equals(buffer) ||
+      (this._streamAtLineStart &&
+        TERMINATOR_BUFFER_ARRAY.slice(1).some(
+          (_buffer) => _buffer.equals(buffer)
+        ))
+    ) {
       this._endStream();
       return;
     }
@@ -93,6 +116,9 @@ class Pop3Connection extends EventEmitter {
       return;
     }
     /** @type {Readable} */ (this._stream).push(buffer);
+    if (buffer.length) {
+      this._streamAtLineStart = buffer.at(-1) === 10; // '\n'
+    }
   }
 
   /**

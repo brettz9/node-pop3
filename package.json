@@ -1,6 +1,6 @@
 {
   "name": "node-pop3",
-  "version": "0.15.1",
+  "version": "0.15.2",
   "description": "POP3 client for node",
   "main": "./lib/Command.cjs",
   "type": "module",
@@ -25,6 +25,11 @@
     "test": "rm -Rf .nyc_output && rm -Rf ./node_modules/.cache && npm run babel && c8 npm run mocha"
   },
   "c8": {
+    "check-coverage": true,
+    "statements": 100,
+    "lines": 100,
+    "branches": 100,
+    "functions": 100,
     "reporter": [
       "text",
       "lcov"

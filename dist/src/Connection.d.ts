@@ -31,6 +31,7 @@ declare class Pop3Connection extends EventEmitter<any> {
     timeout: number | undefined;
     _socket: Socket | _tls.TLSSocket | null;
     _stream: Readable | null;
+    _streamAtLineStart: boolean;
     _command: string;
     _pendingResponseBuffer: Buffer<ArrayBuffer>;
     tlsOptions: _tls.TlsOptions;

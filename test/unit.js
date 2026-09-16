@@ -215,4 +215,74 @@ describe('Connection split response handling', function () {
       }
     }
   );
+
+  it(
+    'does not end a RETR stream early when a lone "." arrives ' +
+      'mid-line, and does not misread the following body chunk as a ' +
+      'fresh response',
+    async function () {
+      this.timeout(5000);
+
+      const server = createServer((socket) => {
+        socket.write('+OK pop3 test server ready\r\n');
+        socket.on('data', (_buffer) => {
+          const command = _buffer.toString('utf8').trim();
+          if (command.startsWith('USER ')) {
+            socket.write('+OK user accepted\r\n');
+            return;
+          }
+          if (command.startsWith('PASS ')) {
+            socket.write('+OK pass accepted\r\n');
+            return;
+          }
+          if (command === 'RETR 1') {
+            socket.write('+OK message follows\r\n');
+            // Splits "abc.def" so that a standalone "." chunk arrives
+            //   mid-line (not right after a CRLF), followed by a chunk
+            //   that starts with "-" like a `-ERR` response would.
+            setTimeout(() => socket.write('abc'), 5);
+            setTimeout(() => socket.write('.'), 10);
+            setTimeout(
+              () => socket.write('def\r\n-not-an-error\r\n'), 15
+            );
+            setTimeout(() => socket.write('.\r\n'), 20);
+            return;
+          }
+          if (command === 'QUIT') {
+            socket.write('+OK bye\r\n');
+            socket.end();
+          }
+        });
+      });
+
+      await new Promise((resolve) => {
+        server.listen(0, '127.0.0.1', () => {
+          resolve(undefined);
+        });
+      });
+
+      const address = server.address();
+      if (!address || typeof address === 'string') {
+        server.close();
+        throw new TypeError('Could not get test server address');
+      }
+
+      const pop3Command = new Pop3Command({
+        host: '127.0.0.1',
+        port: address.port,
+        user: 'user',
+        password: 'pass'
+      });
+
+      try {
+        const mail = await pop3Command.RETR(1);
+        expect(mail).to.equal('abc.def\r\n-not-an-error\r\n');
+        await pop3Command.QUIT();
+      } finally {
+        await new Promise((resolve) => {
+          server.close(resolve);
+        });
+      }
+    }
+  );
 });

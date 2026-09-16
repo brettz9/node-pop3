@@ -1,5 +1,14 @@
 # CHANGES to node-pop3
 
+## 0.15.2
+
+- fix: only treat a lone `.` or `.\r\n` chunk as the multi-line body
+    terminator when it truly begins a new line; otherwise a chunk
+    boundary that isolates a `.` from ordinary `RETR`/`TOP`/`CAPA`
+    body content could end the stream early, causing the next
+    legitimate body chunk to be misparsed as a fresh (and garbled)
+    `-ERR` response
+
 ## 0.15.1
 
 - fix: `connect()` now listens for its own `error` event so a `-ERR`
