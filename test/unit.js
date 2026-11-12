@@ -285,4 +285,67 @@ describe('Connection split response handling', function () {
       }
     }
   );
+
+  it(
+    'ends a RETR stream when the CRLF.CRLF terminator is split ' +
+      'across chunks (e.g., after a "--" final line)',
+    async function () {
+      this.timeout(5000);
+
+      const server = createServer((socket) => {
+        socket.write('+OK pop3 test server ready\r\n');
+        socket.on('data', (_buffer) => {
+          const command = _buffer.toString('utf8').trim();
+          if (command.startsWith('USER ')) {
+            socket.write('+OK user accepted\r\n');
+            return;
+          }
+          if (command.startsWith('PASS ')) {
+            socket.write('+OK pass accepted\r\n');
+            return;
+          }
+          if (command === 'RETR 1') {
+            socket.write('+OK message follows\r\n');
+            setTimeout(() => socket.write('body\r\n-----zWJd--'), 5);
+            setTimeout(() => socket.write('\r'), 10);
+            setTimeout(() => socket.write('\n.\r\n'), 15);
+            return;
+          }
+          if (command === 'QUIT') {
+            socket.write('+OK bye\r\n');
+            socket.end();
+          }
+        });
+      });
+
+      await new Promise((resolve) => {
+        server.listen(0, '127.0.0.1', () => {
+          resolve(undefined);
+        });
+      });
+
+      const address = server.address();
+      if (!address || typeof address === 'string') {
+        server.close();
+        throw new TypeError('Could not get test server address');
+      }
+
+      const pop3Command = new Pop3Command({
+        host: '127.0.0.1',
+        port: address.port,
+        user: 'user',
+        password: 'pass'
+      });
+
+      try {
+        const mail = await pop3Command.RETR(1);
+        expect(mail).to.equal('body\r\n-----zWJd--');
+        await pop3Command.QUIT();
+      } finally {
+        await new Promise((resolve) => {
+          server.close(resolve);
+        });
+      }
+    }
+  );
 });

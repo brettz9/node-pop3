@@ -1,5 +1,11 @@
 # CHANGES to node-pop3
 
+## 0.15.4
+
+- fix: detect the multi-line `\r\n.\r\n` terminator even when it is
+    split across network chunks (e.g., `\r` followed by `\n.\r\n`),
+    which previously left `RETR`/`TOP`/`CAPA` hanging (#47)
+
 ## 0.15.3
 
 - fix: keep a permanent `error` listener on the connection for its
