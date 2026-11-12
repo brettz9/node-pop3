@@ -1,1 +1,1 @@
-{"version":3,"file":"constant.d.ts","sourceRoot":"","sources":["../../src/constant.js"],"names":[],"mappings":"AAAA,mBAAoB,MAAM,CAAC;AAC3B,8CAA+C;AAC/C,oDAA0D;AAC1D,4DAIE;AAEF,+CAIE;AACF,qDAGE"}
+{"version":3,"file":"constant.d.ts","sourceRoot":"","sources":["../../src/constant.js"],"names":[],"mappings":"AAAA,eAAO,MAAM,IAAI,SAAS,CAAC;AAC3B,eAAO,MAAM,WAAW,qBAAsB,CAAC;AAC/C,eAAO,MAAM,iBAAiB,qBAA2B,CAAC;AAC1D,eAAO,MAAM,uBAAuB,uBAInC,CAAC;AAEF,eAAO,MAAM,uBAAuB,UAInC,CAAC;AACF,eAAO,MAAM,6BAA6B,UAGzC,CAAC"}
