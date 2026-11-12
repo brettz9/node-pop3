@@ -1,9 +1,8 @@
-// @ts-nocheck
 /* eslint-disable promise/avoid-new -- Test
   file uses concise stubs and callback wrappers to cover edge
   branches. */
-import {Readable} from 'stream';
-import {createServer} from 'net';
+import {Readable} from 'node:stream';
+import {createServer} from 'node:net';
 
 import {expect} from 'chai';
 
@@ -175,10 +174,12 @@ describe('Connection split response handling', function () {
             setTimeout(() => socket.write('.'), 20);
             return;
           }
-          if (command === 'QUIT') {
-            socket.write('+OK bye\r\n');
-            socket.end();
+          if (command !== 'QUIT') {
+            return;
           }
+
+          socket.write('+OK bye\r\n');
+          socket.end();
         });
       });
 
@@ -248,10 +249,12 @@ describe('Connection split response handling', function () {
             setTimeout(() => socket.write('.\r\n'), 20);
             return;
           }
-          if (command === 'QUIT') {
-            socket.write('+OK bye\r\n');
-            socket.end();
+          if (command !== 'QUIT') {
+            return;
           }
+
+          socket.write('+OK bye\r\n');
+          socket.end();
         });
       });
 
@@ -311,10 +314,12 @@ describe('Connection split response handling', function () {
             setTimeout(() => socket.write('\n.\r\n'), 15);
             return;
           }
-          if (command === 'QUIT') {
-            socket.write('+OK bye\r\n');
-            socket.end();
+          if (command !== 'QUIT') {
+            return;
           }
+
+          socket.write('+OK bye\r\n');
+          socket.end();
         });
       });
 

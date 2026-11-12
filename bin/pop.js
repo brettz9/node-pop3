@@ -9,7 +9,6 @@ import {stream2String} from '../src/helper.js';
 const {argv} = process,
   /**
    * @type {{
-   *   help: [boolean],
    *   [key: string]: any[]
    * }}
    */
@@ -38,7 +37,7 @@ const {argv} = process,
    *   servername?: string
    * }}
    */
-  mailStructure = {},
+  mailStructure = {user: '', password: '', host: ''},
   mailStructureOptionNames = ['user', 'password', 'host', 'port', 'tls', 'timeout'];
 
 mailStructure.port = 110;
@@ -144,18 +143,18 @@ for (const _optionName of mailStructureOptionNames) {
 }
 
 const pop3Command = new Pop3Command(
-    /**
+  /**
    * @type {{
-    *   user: string,
-    *   password: string,
-    *   host: string,
-    *   port?: Integer,
-    *   tls?: boolean,
-    *   timeout?: Integer,
-    *   tlsOptions?: import('tls').TlsOptions,
-    *   servername?: string
-    * }}
-    */
+   *   user: string,
+   *   password: string,
+   *   host: string,
+   *   port?: Integer,
+   *   tls?: boolean,
+   *   timeout?: Integer,
+   *   tlsOptions?: import('tls').TlsOptions,
+   *   servername?: string
+   * }}
+   */
   (mailStructure)
 );
 const [methodName] = options.method;

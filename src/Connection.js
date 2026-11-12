@@ -1,7 +1,7 @@
-import {Socket} from 'net';
-import _tls from 'tls';
-import {EventEmitter} from 'events';
-import {Readable} from 'stream';
+import {Socket} from 'node:net';
+import _tls from 'node:tls';
+import {EventEmitter} from 'node:events';
+import {Readable} from 'node:stream';
 
 import {
   CRLF,
@@ -24,14 +24,14 @@ class Pop3Connection extends EventEmitter {
   /* eslint-enable unicorn/prefer-event-target -- Should replace for browser */
   /**
    * @param {{
-  *   host: string,
-  *   port?: Integer,
-  *   tls?: boolean,
-  *   timeout?: Integer,
-  *   tlsOptions?: import('tls').TlsOptions,
-  *   servername?: string
-  * }} cfg
-  */
+   *   host: string,
+   *   port?: Integer,
+   *   tls?: boolean,
+   *   timeout?: Integer,
+   *   tlsOptions?: import('tls').TlsOptions,
+   *   servername?: string
+   * }} cfg
+   */
   constructor ({
     host,
     port,

@@ -1,10 +1,9 @@
-// @ts-nocheck
 /* eslint-disable require-await, @stylistic/max-len,
     promise/avoid-new, no-promise-executor-return,
     jsdoc/reject-any-type -- Coverage-focused tests use
     concise stubs and callback wrappers for branch control. */
-import {Readable} from 'stream';
-import {createServer} from 'net';
+import {Readable} from 'node:stream';
+import {createServer, Socket} from 'node:net';
 
 import {expect} from 'chai';
 
@@ -92,10 +91,7 @@ describe('Pop3Command branch coverage', function () {
       if (commandName === 'UIDL') {
         return ['1 unique-id', null];
       }
-      if (commandName === 'LIST') {
-        return ['1 42', null];
-      }
-      return ['ok', null];
+      return [commandName === 'LIST' ? '1 42' : 'ok', null];
     };
 
     const uidl = await pop3Command.UIDL(1);
@@ -119,10 +115,7 @@ describe('Pop3Command branch coverage', function () {
       if (commandName === 'PASS') {
         return ['auth ok', null];
       }
-      if (commandName === 'LIST') {
-        return ['ok', Readable.from([Buffer.from('1 10\r\n2 20\r\n')])];
-      }
-      return ['ok', null];
+      return ['ok', commandName === 'LIST' ? Readable.from([Buffer.from('1 10\r\n2 20\r\n')]) : null];
     };
 
     const list = await pop3Command.LIST();
@@ -149,10 +142,7 @@ describe('Pop3Command branch coverage', function () {
       if (commandName === 'DELE') {
         return ['delete ok', null];
       }
-      if (commandName === 'STAT') {
-        return ['2 320', null];
-      }
-      return ['ok', null];
+      return [commandName === 'STAT' ? '2 320' : 'ok', null];
     };
 
     expect(await pop3Command.RSET()).to.equal('reset ok');
@@ -174,9 +164,10 @@ describe('Pop3Command branch coverage', function () {
       if (commandName === 'PASS') {
         return ['auth ok', null];
       }
-      if (commandName === 'NOOP') {
-        return ['ok', null];
-      }
+
+      // if (commandName === 'NOOP') {
+      //   return ['ok', null];
+      // }
       return ['ok', null];
     };
 
@@ -222,10 +213,7 @@ describe('Pop3Command branch coverage', function () {
       if (commandName === 'PASS') {
         return ['auth ok', null];
       }
-      if (commandName === 'LAST') {
-        return ['3', null];
-      }
-      return ['ok', null];
+      return [commandName === 'LAST' ? '3' : 'ok', null];
     };
 
     const info = await pop3Command.LAST();
@@ -300,10 +288,7 @@ describe('Pop3Command branch coverage', function () {
       if (commandName === 'PASS') {
         return ['auth ok', null];
       }
-      if (commandName === 'TOP') {
-        return ['ok', stream];
-      }
-      return ['ok', null];
+      return ['ok', commandName === 'TOP' ? stream : null];
     };
 
     const result = await pop3Command.TOP(1, 0);
@@ -409,10 +394,7 @@ describe('Pop3Command branch coverage', function () {
       if (commandName === 'PASS') {
         return ['auth ok', null];
       }
-      if (commandName === 'RETR') {
-        return ['ok', Readable.from([Buffer.from('mail body')])];
-      }
-      return ['ok', null];
+      return ['ok', commandName === 'RETR' ? Readable.from([Buffer.from('mail body')]) : null];
     };
 
     const result = await pop3Command.RETR(1);
@@ -435,10 +417,7 @@ describe('Pop3Command branch coverage', function () {
     pop3Command._capabilities = {PIPELINING: []};
 
     Pop3Connection.prototype.command = async function (commandName) {
-      if (commandName === 'QUIT') {
-        return ['', null];
-      }
-      return ['ok', null];
+      return [commandName === 'QUIT' ? '' : 'ok', null];
     };
 
     const info = await pop3Command.QUIT();
@@ -450,20 +429,14 @@ describe('Pop3Command branch coverage', function () {
 
 describe('Connection command branch coverage', function () {
   /**
-   * @returns {Pop3Connection & {_socket: {write: (data: string, enc: string) => void}}}
+   * @returns {Pop3Connection & {_socket: import('net').Socket}}
    */
   function makeConnection () {
     const connection = new Pop3Connection({host: 'example.test'});
-    // @ts-expect-error Test doubles for socket state
-    connection._socket = {
-      destroyed: false,
-      writable: true,
-      writableEnded: false,
-      write () {
-        // Replaced per-test.
-      }
-    };
-    return /** @type {any} */ (connection);
+    const socket = new Socket();
+    Object.defineProperty(socket, 'writable', {value: true});
+    connection._socket = socket;
+    return Object.assign(connection, {_socket: socket});
   }
 
   it('waits for pending stream end before writing a new command', async function () {
@@ -473,6 +446,7 @@ describe('Connection command branch coverage', function () {
     connection._socket.write = function () {
       const responseListener = connection.listeners('response')[0];
       responseListener('ok', null);
+      return true;
     };
 
     const prom = connection.command('NOOP');
@@ -549,6 +523,7 @@ describe('Connection command branch coverage', function () {
       const errorListener = connection.listeners('error')[0];
       errorListener(new Error('first error'));
       errorListener(new Error('second error'));
+      return true;
     };
 
     try {
@@ -565,6 +540,7 @@ describe('Connection command branch coverage', function () {
       const responseListener = connection.listeners('response')[0];
       responseListener('ok', null);
       responseListener('ignored', null);
+      return true;
     };
 
     const result = await connection.command('NOOP');
@@ -659,10 +635,12 @@ describe('Connection connect branch coverage', function () {
           socket.write('+OK list follows\r\n1 20\r\n.\r\n');
           return;
         }
-        if (command === 'QUIT') {
-          socket.write('+OK bye\r\n');
-          socket.end();
+        if (command !== 'QUIT') {
+          return;
         }
+
+        socket.write('+OK bye\r\n');
+        socket.end();
       });
     });
 

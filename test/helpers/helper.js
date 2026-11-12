@@ -1,4 +1,4 @@
-import {readFileSync} from 'fs';
+import {readFileSync} from 'node:fs';
 import {setTimeout as delayPromise} from 'node:timers/promises';
 import {SMTPClient} from 'emailjs';
 import Pop3Command from '../../src/Command.js';

@@ -1,7 +1,7 @@
 /* eslint-disable chai-expect/no-inner-literal -- Just checking reached code */
 /* eslint-disable sonarjs/no-trivial-assertions -- Used to flag success */
-import {Readable} from 'stream';
-import {readFileSync} from 'fs';
+import {Readable} from 'node:stream';
+import {readFileSync} from 'node:fs';
 
 import {expect} from 'chai';
 
